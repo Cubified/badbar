@@ -13,7 +13,7 @@
 #define COLOR_CYAN    "\x1b[36m"
 #define COLOR_RESET   "\x1b[0m"
 
-#define LANG_VER "0.1.0"
+#define LANG_VER "0.2.0"
 
 #define EXIT_CODE_SUCCESS 0
 #define EXIT_CODE_FAILURE_DISPLAY 1

@@ -1,4 +1,4 @@
-### badbar
+## badbar
 
 A bad but small bar for X.  16kb, give or take.
 
@@ -30,7 +30,6 @@ Refer to `config.h` for more detail, but here are a few key items:
 - `config_bar_{w, h}`:  The {width, height} of the bar
 - `config_{back, fore}ground_color`:  An X11-styled color triple (e.g. "rgb:ab/cd/ef")
 - `config_font`:  An X11 logical font description (e.g. "-nerdypepper-scientifica-medium-r-normal-\*-11-\*-\*-\*-\*-\*-\*-\*")
-- `config_font_size`:  The size of the above font (must be manually specified because badbar currently does not query the server regarding the font's size)
 - `config_timeout`:  The elapsed time (in seconds) between each run of the bar's commands
 
 Additionally, a badbar is comprised of "entries," which can be added and removed from the `config_entries` array in `config.h` and take the form of:
@@ -63,5 +62,4 @@ The `draw_output` variable describes the entry's behavior after calling a given 
 
 #### To-Do
 
-- Add more accurate CPU usage measurement by default (without dependencies such as mpstat)
-- Query X server for font size and remove `config_font_size` directive
+- Double buffer window output to prevent occasional flickering

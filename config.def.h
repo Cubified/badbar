@@ -48,10 +48,8 @@ struct badbar_entry {
 
 /* Event struct which signals to badbar that a given entry has no event handlers
  *  (this is required because empty array initializers are not valid C code)
- *
- * TODO: clang's static analyzer generates a warning, implement alternative solution
  */
-const struct badbar_mouse_event EVENT_NONE = {-1, NULL, 0};
+#define EVENT_NONE {-1, NULL, 0}
 
 struct badbar_entry config_entries[] = {
   {
@@ -68,13 +66,13 @@ struct badbar_entry config_entries[] = {
     "date +'%m/%d/%y %I:%M %p'",
     "",
     {
-      {MOUSE_LEFT, "echo a", DRAW_EVTCMD}
+      EVENT_NONE
     },
     110
   },
   {
     "CPU: ",
-    "top -bn1 | grep \"Cpu(s)\" | sed \"s/.*, *\\([0-9.]*\\)%* id.*/\\1/\" | awk '{print 100 - $1\"%\"}' | tail -n1",
+    "cat /proc/stat | awk '/^cpu / {div=($2/$5)*100;printf(\"%.2f\", div);}'",
     "",
     {
       EVENT_NONE

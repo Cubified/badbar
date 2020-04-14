@@ -51,7 +51,8 @@ enum DRAW {
 int running;
 Display *dpy;
 Window win;
-Font font;
+XFontStruct *font;
+int offset_left[LENGTH(config_entries)];
 
 /*
  * STATIC DEFINITIONS
@@ -65,7 +66,7 @@ static int  badbar_on_x_error(Display *dpy, XErrorEvent *e);
 static void badbar_button(XButtonEvent *xbutton);
 
 static void badbar_start();
-static void badbar_exec(struct badbar_entry entry, int text_x, int button);
+static void badbar_exec(struct badbar_entry entry, int entry_index, int button);
 static void badbar_events();
 static void badbar_entries();
 static void badbar_stop(int code);
@@ -115,22 +116,12 @@ int badbar_on_x_error(Display *dpy, XErrorEvent *e){
 void badbar_button(XButtonEvent *xbutton){
   int i;
   int mouse_x = xbutton->x;
-  int cumulative_w = 0;
 
-  /* TODO: Store cumulative_w to avoid unnecessary looping */
   for(i=0;i<LENGTH(config_entries);i++){
-    if(mouse_x > cumulative_w &&
-       mouse_x <= cumulative_w+config_entries[i].width){
-      XClearArea(
-        dpy,
-        win,
-        cumulative_w, 0,
-        cumulative_w+config_entries[i].width, config_bar_h,
-        False
-      );
-      badbar_exec(config_entries[i], cumulative_w, xbutton->button);
+    if(mouse_x > offset_left[i] &&
+       mouse_x <= offset_left[i]+config_entries[i].width){
+      badbar_exec(config_entries[i], i, xbutton->button);
     }
-    cumulative_w += config_entries[i].width;
   }
 }
 
@@ -143,6 +134,8 @@ void badbar_start(){
   XColor bgd;
   XColor fgd;
   Atom dock_atom;
+  int cumulative_width;
+  int i;
 
   running = 1;
   info(LANG_STARTUP, LANG_STARTUP_LEN);
@@ -196,15 +189,21 @@ void badbar_start(){
   XSelectInput(dpy, win, ButtonPressMask | ButtonReleaseMask);
   XMapWindow(dpy, win);
 
-  font = XLoadFont(dpy, config_font);
-  XSetFont(dpy, DefaultGC(dpy, DefaultScreen(dpy)), font);
+  font = XLoadQueryFont(dpy, config_font);
+  XSetFont(dpy, DefaultGC(dpy, DefaultScreen(dpy)), font->fid);
   XSetForeground(dpy, DefaultGC(dpy, DefaultScreen(dpy)), fgd.pixel);
 
   XFlush(dpy);
+
+  memset(offset_left, 0, sizeof(offset_left));
+  for(i=0,cumulative_width=0;i<LENGTH(config_entries);i++){
+    offset_left[i] = cumulative_width;
+    cumulative_width += config_entries[i].width;
+  }
 }
 
 /* Generic command runner */
-void badbar_exec(struct badbar_entry entry, int text_x, int button){
+void badbar_exec(struct badbar_entry entry, int entry_index, int button){
   int i;
   int hit;
   int draw_output;
@@ -241,14 +240,22 @@ void badbar_exec(struct badbar_entry entry, int text_x, int button){
      (draw_output == DRAW_MAINCMD && button == MOUSE_NONE)){
     /* Either the main command or the appropriate event command
      *  is being called */
+    memset(out, 0, sizeof(out));
     fgets(out, sizeof(out), fp);
     out[strlen(out)-1] = '\0';
     sprintf(buf, "%s%s%s", entry.prepend, out, entry.append);
+    XClearArea(
+      dpy,
+      win,
+      offset_left[entry_index], 0,
+      offset_left[entry_index]+entry.width, config_bar_h,
+      False
+    );
     XDrawString(
       dpy,
       win,
       DefaultGC(dpy, DefaultScreen(dpy)),
-      text_x, (config_bar_h+(config_font_size/2))/2,
+      offset_left[entry_index], (config_bar_h+(font->max_bounds.width/2))/2,
       buf,
       strlen(buf)
     );
@@ -257,7 +264,7 @@ void badbar_exec(struct badbar_entry entry, int text_x, int button){
     /* The appropriate event command has been called, but this specific entry
      *  has been configured to rerun the main command afterwards */
     pclose(fp);
-    badbar_exec(entry, text_x, MOUSE_NONE);
+    badbar_exec(entry, entry_index, MOUSE_NONE);
   }
 }
 
@@ -301,13 +308,9 @@ void badbar_events(){
 /* Execute all entries' commands and display output */
 void badbar_entries(){
   int i;
-  int cumulative_w = 0;
-
-  XClearWindow(dpy, win);
 
   for(i=0;i<LENGTH(config_entries);i++){
-    badbar_exec(config_entries[i], cumulative_w, MOUSE_NONE);
-    cumulative_w += config_entries[i].width;
+    badbar_exec(config_entries[i], i, MOUSE_NONE);
   }
   
   XFlush(dpy);
@@ -320,7 +323,7 @@ void badbar_stop(int code){
 
     if(dpy != NULL){
       XUnmapWindow(dpy, win);
-      XUnloadFont(dpy, font);
+      XFreeFont(dpy, font);
       XCloseDisplay(dpy);
     }
 
