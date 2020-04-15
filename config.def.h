@@ -21,13 +21,12 @@
 #define config_background_color "rgb:20/20/1d"
 #define config_foreground_color "rgb:a6/a2/8c"
 #define config_font "-misc-*-*-*-*-*-10-*-*-*-*-*-*-*"
-#define config_font_size 10
 
 /* Whether or not the program should exit upon encountering an asynchronous X error */
 #define config_exit_on_x_error
 
 /* Elapsed time (in seconds) between each run of the below commands */
-#define config_timeout 10
+#define config_timeout 5
 
 struct badbar_mouse_event {
   int button;       /* MOUSE_{LEFT, MIDDLE, RIGHT, SCROLLUP, SCROLLDOWN} */
@@ -72,12 +71,13 @@ struct badbar_entry config_entries[] = {
   },
   {
     "CPU: ",
-    "cat /proc/stat | awk '/^cpu / {div=($2/$5)*100;printf(\"%.2f\", div);}'",
-    "",
+    /* Original script in cpu_usage.sh, minified for portability */
+    "stat=`cat /proc/stat | grep '^cpu '`;idle=`cat /proc/stat | awk '/^cpu / {printf(\"%f\", $5)}'`;total=0;for val in $stat; do if [ ! \"$val\" = \"cpu\" ]; then total=`echo \"$total+$val\" | bc`; fi; done; if [ ! -e /tmp/.cpu_usage ]; then mkdir /tmp/.cpu_usage; echo \"0\" > /tmp/.cpu_usage/prev_idle; echo \"0\" > /tmp/.cpu_usage/prev_total; fi;prev_idle=`cat /tmp/.cpu_usage/prev_idle`;prev_total=`cat /tmp/.cpu_usage/prev_total`;diff_idle=`echo \"$idle-$prev_idle\" | bc`;diff_total=`echo \"scale=5; $total-$prev_total\" | bc`;diff_diffs=`echo \"$diff_total-$diff_idle\" | bc`;diff_ratio=`echo \"scale=5; $diff_diffs/$diff_total\" | bc`;diff_percent=`echo \"1000*$diff_ratio\" | bc`;diff_percent_plus5=`echo \"$diff_percent+5\" | bc`;diff_usage=`echo \"$diff_percent_plus5 10\" | awk '{printf \"%.0f\", $1/$2}'`;echo \"$idle\" > /tmp/.cpu_usage/prev_idle;echo \"$total\" > /tmp/.cpu_usage/prev_total;echo $diff_usage",
+    "%",
     {
       EVENT_NONE
     },
-    75
+    65
   },
   {
     "RAM: ",

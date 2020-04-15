@@ -59,7 +59,3 @@ The `draw_output` variable describes the entry's behavior after calling a given 
 - `DRAW_NOTHING` causing nothing to be redrawn in the entry's space (meaning the handler's command runs but nothing changes visually)
 - `DRAW_MAINCMD` causing the entry's main command (i.e. the `cmd` value of the *entry* rather than *handler*) to be rerun, with its output being drawn to the screen
 - `DRAW_EVTCMD` causing the output of the event handler's command to be drawn to the screen
-
-#### To-Do
-
-- Double buffer window output to prevent occasional flickering

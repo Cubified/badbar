@@ -16,6 +16,7 @@ INSTALLDIR=$(HOME)/.local/bin
 RM=/bin/rm
 CP=/bin/cp
 
+.PHONY: badbar
 badbar:
 	$(CC) $(INPUT) -o $(OUTPUT) $(LIBS) $(CFLAGS) $(FLAGS)
 

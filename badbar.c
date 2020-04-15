@@ -52,6 +52,9 @@ int running;
 Display *dpy;
 Window win;
 XFontStruct *font;
+Pixmap double_buffer;
+XColor bgd;
+XColor fgd;
 int offset_left[LENGTH(config_entries)];
 
 /*
@@ -131,8 +134,6 @@ void badbar_button(XButtonEvent *xbutton){
 
 /* Init */
 void badbar_start(){
-  XColor bgd;
-  XColor fgd;
   Atom dock_atom;
   int cumulative_width;
   int i;
@@ -191,7 +192,13 @@ void badbar_start(){
 
   font = XLoadQueryFont(dpy, config_font);
   XSetFont(dpy, DefaultGC(dpy, DefaultScreen(dpy)), font->fid);
-  XSetForeground(dpy, DefaultGC(dpy, DefaultScreen(dpy)), fgd.pixel);
+
+  double_buffer = XCreatePixmap(
+    dpy,
+    win,
+    config_bar_w, config_bar_h,
+    DefaultDepth(dpy, DefaultScreen(dpy))
+  );
 
   XFlush(dpy);
 
@@ -244,21 +251,34 @@ void badbar_exec(struct badbar_entry entry, int entry_index, int button){
     fgets(out, sizeof(out), fp);
     out[strlen(out)-1] = '\0';
     sprintf(buf, "%s%s%s", entry.prepend, out, entry.append);
-    XClearArea(
+
+    XSetForeground(dpy, DefaultGC(dpy, DefaultScreen(dpy)), bgd.pixel);
+    XFillRectangle(
       dpy,
-      win,
+      double_buffer,
+      DefaultGC(dpy, DefaultScreen(dpy)),
       offset_left[entry_index], 0,
-      offset_left[entry_index]+entry.width, config_bar_h,
-      False
+      offset_left[entry_index]+entry.width, config_bar_h
     );
+    XSetForeground(dpy, DefaultGC(dpy, DefaultScreen(dpy)), fgd.pixel);
     XDrawString(
       dpy,
-      win,
+      double_buffer,
       DefaultGC(dpy, DefaultScreen(dpy)),
       offset_left[entry_index], (config_bar_h+(font->max_bounds.width/2))/2,
       buf,
       strlen(buf)
     );
+    XCopyArea(
+      dpy,
+      double_buffer,
+      win,
+      DefaultGC(dpy, DefaultScreen(dpy)),
+      offset_left[entry_index], 0,
+      offset_left[entry_index]+entry.width, config_bar_h,
+      offset_left[entry_index], 0
+    );
+
     pclose(fp);
   } else if(draw_output == DRAW_MAINCMD && button != MOUSE_NONE){
     /* The appropriate event command has been called, but this specific entry
@@ -324,6 +344,7 @@ void badbar_stop(int code){
     if(dpy != NULL){
       XUnmapWindow(dpy, win);
       XFreeFont(dpy, font);
+      XFreePixmap(dpy, double_buffer);
       XCloseDisplay(dpy);
     }
 
